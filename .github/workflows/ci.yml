@@ -1,0 +1,68 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  helm:
+    name: Helm lint + template
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Helm
+        uses: azure/setup-helm@v4
+        with:
+          version: v3.16.0
+
+      - name: Detect project state
+        id: detect
+        shell: bash
+        run: |
+          if [ -d charts ] && [ -n "$(ls -A charts 2>/dev/null)" ]; then
+            echo "has_charts=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "has_charts=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::No charts/ directory yet — CI is running in skeleton mode and will no-op. Once charts land, helm lint and template will activate automatically."
+          fi
+
+      - name: Helm lint (all charts)
+        if: steps.detect.outputs.has_charts == 'true'
+        shell: bash
+        run: |
+          set -e
+          for chart in charts/*/; do
+            echo "::group::helm lint $chart"
+            helm lint "$chart"
+            echo "::endgroup::"
+          done
+
+      - name: Helm template (all charts)
+        if: steps.detect.outputs.has_charts == 'true'
+        shell: bash
+        run: |
+          set -e
+          for chart in charts/*/; do
+            echo "::group::helm template $chart"
+            helm template test-release "$chart" > /dev/null
+            echo "::endgroup::"
+          done
+
+      - name: kubeconform — schema validation
+        if: steps.detect.outputs.has_charts == 'true'
+        shell: bash
+        run: |
+          set -e
+          curl -sL https://github.com/yannh/kubeconform/releases/latest/download/kubeconform-linux-amd64.tar.gz | tar xz
+          for chart in charts/*/; do
+            echo "::group::kubeconform $chart"
+            helm template test-release "$chart" | ./kubeconform -strict -summary -ignore-missing-schemas
+            echo "::endgroup::"
+          done
