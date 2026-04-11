@@ -1,0 +1,67 @@
+# Pre-commit hooks for the z3rno-helm repo
+#
+# Install:
+#   pip install pre-commit  # or: brew install pre-commit
+#   pre-commit install
+
+default_install_hook_types:
+  - pre-commit
+  - commit-msg
+
+repos:
+  # ---------------------------------------------------------------------------
+  # Generic hygiene
+  # ---------------------------------------------------------------------------
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+        # Helm templates use Go template syntax that breaks the YAML parser.
+        # Exclude all chart template directories.
+        exclude: ^charts/.*/templates/
+        args: [--allow-multiple-documents]
+      - id: check-merge-conflict
+      - id: check-case-conflict
+      - id: check-added-large-files
+        args: [--maxkb=500]
+      - id: mixed-line-ending
+        args: [--fix=lf]
+      - id: detect-private-key
+
+  # ---------------------------------------------------------------------------
+  # yamllint — linter for YAML files (Chart.yaml, values.yaml)
+  # ---------------------------------------------------------------------------
+  - repo: https://github.com/adrienverge/yamllint
+    rev: v1.35.1
+    hooks:
+      - id: yamllint
+        args: [--strict, --config-data, '{extends: default, rules: {line-length: disable, document-start: disable, truthy: {check-keys: false}}}']
+        exclude: ^charts/.*/templates/
+
+  # ---------------------------------------------------------------------------
+  # helm lint — chart structure validation (skeleton-mode tolerant)
+  # ---------------------------------------------------------------------------
+  - repo: local
+    hooks:
+      - id: helm-lint
+        name: helm lint (skeleton-mode tolerant)
+        language: system
+        entry: bash -c 'if [ -d charts ] && [ -n "$(ls -A charts 2>/dev/null)" ]; then for c in charts/*/; do helm lint "$c" || exit 1; done; else echo "skeleton mode: no charts/ yet — skipping helm lint"; fi'
+        pass_filenames: false
+        always_run: true
+
+  # ---------------------------------------------------------------------------
+  # commit message format (conventional commits)
+  # ---------------------------------------------------------------------------
+  - repo: https://github.com/compilerla/conventional-pre-commit
+    rev: v3.6.0
+    hooks:
+      - id: conventional-pre-commit
+        stages: [commit-msg]
+        args: [feat, fix, build, chore, ci, docs, perf, refactor, revert, style, test]
+
+ci:
+  autofix_prs: true
+  autoupdate_schedule: monthly
