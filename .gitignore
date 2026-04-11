@@ -1,0 +1,36 @@
+# macOS
+.DS_Store
+Thumbs.db
+
+# Helm
+charts/*.tgz
+*.tgz
+.helmignore.bak
+
+# Helm dependencies (committed lock, not subcharts)
+charts/*/charts/
+**/Chart.lock
+!Chart.lock
+
+# Local values overrides
+values-local.yaml
+values-dev-*.yaml
+!values.yaml
+!values-staging.yaml
+!values-production.yaml
+
+# kubeval / kubeconform output
+*.yaml.bak
+
+# Editors / IDEs
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Secrets — never commit
+secrets/
+*.key
+*.pem
+sealed-secrets/
