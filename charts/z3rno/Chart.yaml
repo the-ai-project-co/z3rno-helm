@@ -1,0 +1,21 @@
+apiVersion: v2
+name: z3rno
+description: Helm chart for Z3rno - the database for AI agent memory
+type: application
+version: 0.1.0
+appVersion: 0.0.1
+kubeVersion: ">=1.27.0"
+home: https://github.com/the-ai-project-co/z3rno
+sources:
+  - https://github.com/the-ai-project-co/z3rno-server
+  - https://github.com/the-ai-project-co/z3rno-helm
+maintainers:
+  - name: the-ai-project-co
+    url: https://github.com/the-ai-project-co
+keywords:
+  - z3rno
+  - ai
+  - memory
+  - agent
+  - database
+  - fastapi

@@ -1,0 +1,43 @@
+Z3rno has been installed!
+
+Release: {{ .Release.Name }}
+Namespace: {{ .Release.Namespace }}
+
+Components deployed:
+  - z3rno-server ({{ .Values.server.replicas }} replica(s))
+{{- if .Values.worker.enabled }}
+  - Celery worker ({{ .Values.worker.replicas }} replica(s))
+{{- end }}
+{{- if and .Values.valkey.enabled (not .Values.externalRedis.enabled) }}
+  - Valkey (bundled, 1 replica)
+{{- end }}
+{{- if .Values.externalRedis.enabled }}
+  - Redis: {{ .Values.externalRedis.host }}:{{ .Values.externalRedis.port }} (external)
+{{- end }}
+
+To check the status:
+
+  kubectl get pods -l app.kubernetes.io/instance={{ .Release.Name }} -n {{ .Release.Namespace }}
+
+To access the API locally:
+
+  kubectl port-forward svc/{{ include "z3rno.server.fullname" . }} 8000:{{ .Values.server.port }} -n {{ .Release.Namespace }}
+
+  curl http://localhost:8000/v1/health
+
+{{- if .Values.ingress.enabled }}
+
+Ingress is enabled. Access the API at:
+{{- range .Values.ingress.hosts }}
+  http{{ if $.Values.ingress.tls }}s{{ end }}://{{ .host }}
+{{- end }}
+{{- end }}
+
+{{- if not .Values.secrets.databaseUrl }}
+
+WARNING: No DATABASE_URL is set. The server will not start without a PostgreSQL connection.
+Set it via:
+  --set secrets.databaseUrl="postgresql://user:pass@host:5432/z3rno"
+Or use an existing secret:
+  --set secrets.existingSecret=my-z3rno-secrets
+{{- end }}

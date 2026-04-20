@@ -1,0 +1,19 @@
+{{- if and .Values.valkey.enabled (not .Values.externalRedis.enabled) }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "z3rno.valkey.fullname" . }}
+  labels:
+    {{- include "z3rno.labels" . | nindent 4 }}
+    app.kubernetes.io/component: valkey
+spec:
+  type: ClusterIP
+  ports:
+    - port: {{ .Values.valkey.port }}
+      targetPort: redis
+      protocol: TCP
+      name: redis
+  selector:
+    {{- include "z3rno.selectorLabels" . | nindent 4 }}
+    app.kubernetes.io/component: valkey
+{{- end }}

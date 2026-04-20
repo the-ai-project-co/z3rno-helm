@@ -1,0 +1,15 @@
+{{- if .Values.podDisruptionBudget.enabled }}
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ include "z3rno.server.fullname" . }}
+  labels:
+    {{- include "z3rno.labels" . | nindent 4 }}
+    app.kubernetes.io/component: server
+spec:
+  minAvailable: {{ .Values.podDisruptionBudget.minAvailable }}
+  selector:
+    matchLabels:
+      {{- include "z3rno.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: server
+{{- end }}

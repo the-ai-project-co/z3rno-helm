@@ -1,0 +1,118 @@
+# -- Z3rno Helm Chart Values
+# -- Default values for z3rno chart
+
+# -- Server (z3rno-server FastAPI)
+server:
+  image:
+    repository: ghcr.io/the-ai-project-co/z3rno-server
+    tag: latest
+    pullPolicy: IfNotPresent
+  replicas: 2
+  port: 8000
+  resources:
+    requests:
+      memory: 256Mi
+      cpu: 250m
+    limits:
+      memory: 512Mi
+      cpu: 500m
+
+# -- Celery Worker
+worker:
+  enabled: true
+  replicas: 1
+  command: "celery -A z3rno_server.workers.celery_app worker --loglevel=info"
+  resources:
+    requests:
+      memory: 256Mi
+      cpu: 250m
+    limits:
+      memory: 512Mi
+      cpu: 500m
+
+# -- Bundled Valkey (Redis-compatible cache)
+valkey:
+  enabled: true
+  image:
+    repository: valkey/valkey
+    tag: "8"
+    pullPolicy: IfNotPresent
+  port: 6379
+  resources:
+    requests:
+      memory: 128Mi
+      cpu: 100m
+    limits:
+      memory: 256Mi
+      cpu: 200m
+  persistence:
+    enabled: true
+    size: 1Gi
+    storageClass: ""
+
+# -- External PostgreSQL (managed DB: RDS, Cloud SQL, Neon, CloudNativePG, etc.)
+externalDatabase:
+  enabled: false
+  host: ""
+  port: 5432
+  name: "z3rno"
+  user: "z3rno"
+  existingSecret: ""
+  secretKey: "password"
+
+# -- External Redis (ElastiCache, Upstash, etc.) - replaces bundled Valkey
+externalRedis:
+  enabled: false
+  host: ""
+  port: 6379
+  existingSecret: ""
+  secretKey: "redis-password"
+
+# -- Ingress
+ingress:
+  enabled: false
+  className: ""
+  annotations: {}
+  hosts:
+    - host: z3rno.local
+      paths:
+        - path: /
+          pathType: Prefix
+  tls: []
+
+# -- Secrets (use existingSecret for production)
+secrets:
+  databaseUrl: ""
+  redisUrl: ""
+  openaiApiKey: ""
+  z3rnoApiKey: "z3rno_sk_test_localdev"
+  existingSecret: ""
+
+# -- Horizontal Pod Autoscaler (targets server deployment)
+autoscaling:
+  enabled: false
+  minReplicas: 2
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 70
+  targetMemoryUtilizationPercentage: 80
+
+# -- Pod Disruption Budget (targets server pods)
+podDisruptionBudget:
+  enabled: false
+  minAvailable: 1
+
+# -- Additional environment variables
+env: {}
+
+# -- Service Account
+serviceAccount:
+  create: true
+  name: ""
+  annotations: {}
+
+# -- Image pull secrets
+imagePullSecrets: []
+
+# -- Override chart name
+nameOverride: ""
+fullnameOverride: ""
