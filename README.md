@@ -161,6 +161,10 @@ Note: Uninstalling the chart does **not** delete PersistentVolumeClaims created 
 kubectl delete pvc -l app.kubernetes.io/instance=z3rno -n z3rno-system
 ```
 
+For a detailed step-by-step setup, see [QUICKSTART.md](QUICKSTART.md).
+
+Full documentation: [docs.z3rno.dev/self-hosting/kubernetes](https://docs.z3rno.dev/self-hosting/kubernetes)
+
 ## What This Is Not
 
 - Not for local development. For `docker compose up`, see `docker-compose.dev.yml` in `z3rno-server/`.
