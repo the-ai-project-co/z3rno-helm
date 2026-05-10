@@ -9,6 +9,15 @@ data:
   EMBEDDING_MODEL: "text-embedding-3-small"
   LOG_LEVEL: "info"
   CORS_ORIGINS: "*"
+  {{- if .Values.beat.enabled }}
+  # Audit drain tunables — read by z3rno.audit_drain (in workers/audit_drain.py).
+  # Beat schedules the task at AUDIT_DRAIN_INTERVAL_SECONDS; the worker picks
+  # it up and drains up to AUDIT_DRAIN_MAX_ORGS_PER_TICK orgs each invocation,
+  # AUDIT_DRAIN_BATCH_SIZE rows per drain iteration per org.
+  AUDIT_DRAIN_INTERVAL_SECONDS: {{ .Values.beat.audit.drainIntervalSeconds | quote }}
+  AUDIT_DRAIN_BATCH_SIZE: {{ .Values.beat.audit.drainBatchSize | quote }}
+  AUDIT_DRAIN_MAX_ORGS_PER_TICK: {{ .Values.beat.audit.maxOrgsPerTick | quote }}
+  {{- end }}
   {{- range $key, $value := .Values.env }}
   {{ $key }}: {{ $value | quote }}
   {{- end }}

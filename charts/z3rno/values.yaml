@@ -30,6 +30,29 @@ worker:
       memory: 512Mi
       cpu: 500m
 
+# -- Celery Beat scheduler.
+# Drives the periodic z3rno.audit_drain task which chains entries from
+# audit_log_pending into audit_log. Required for v0.7.0+ — without it,
+# audit_log_pending accumulates without bound. Beat is a singleton —
+# do NOT scale beyond 1 replica with the default scheduler (would cause
+# duplicate task scheduling).
+beat:
+  enabled: true
+  replicas: 1
+  command: "celery -A z3rno_server.workers.celery_app beat --loglevel=info"
+  resources:
+    requests:
+      memory: 128Mi
+      cpu: 100m
+    limits:
+      memory: 256Mi
+      cpu: 200m
+  # Audit drain tunables (forwarded as env vars to the beat + worker pods).
+  audit:
+    drainIntervalSeconds: "1.0"
+    drainBatchSize: "500"
+    maxOrgsPerTick: "100"
+
 # -- Bundled Valkey (Redis-compatible cache)
 valkey:
   enabled: true

@@ -75,6 +75,13 @@ Worker fullname.
 {{- end }}
 
 {{/*
+Beat fullname (Celery beat scheduler — drives the audit_drain periodic task).
+*/}}
+{{- define "z3rno.beat.fullname" -}}
+{{- printf "%s-beat" (include "z3rno.fullname" .) }}
+{{- end }}
+
+{{/*
 Valkey fullname.
 */}}
 {{- define "z3rno.valkey.fullname" -}}

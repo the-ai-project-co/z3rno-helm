@@ -1,0 +1,48 @@
+{{- if .Values.beat.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "z3rno.beat.fullname" . }}
+  labels:
+    {{- include "z3rno.labels" . | nindent 4 }}
+    app.kubernetes.io/component: beat
+spec:
+  # Beat MUST be a singleton with the default celery scheduler. Two
+  # beat pods would double-schedule every periodic task. The audit
+  # drain task itself is concurrency-safe (per-org pg_try_advisory_xact_lock),
+  # so the *worker* deployment can scale freely — only the beat scheduler
+  # is constrained to one.
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      {{- include "z3rno.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: beat
+  template:
+    metadata:
+      labels:
+        {{- include "z3rno.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: beat
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "z3rno.serviceAccountName" . }}
+      containers:
+        - name: beat
+          image: "{{ .Values.server.image.repository }}:{{ .Values.server.image.tag }}"
+          imagePullPolicy: {{ .Values.server.image.pullPolicy }}
+          command:
+            - /bin/sh
+            - -c
+            - {{ .Values.beat.command | quote }}
+          envFrom:
+            - configMapRef:
+                name: {{ include "z3rno.fullname" . }}
+            - secretRef:
+                name: {{ include "z3rno.secretName" . }}
+          resources:
+            {{- toYaml .Values.beat.resources | nindent 12 }}
+{{- end }}
