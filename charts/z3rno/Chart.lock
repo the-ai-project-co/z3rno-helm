@@ -1,0 +1,6 @@
+dependencies:
+- name: z3rno-postgres
+  repository: file://../z3rno-postgres
+  version: 0.1.0
+digest: sha256:76d2013d5eb5d218d16d5951dfe7ee432b6a724f42eae16a8fdff84704ebe89e
+generated: "2026-05-11T23:02:49.190241+05:30"

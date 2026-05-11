@@ -1,0 +1,76 @@
+# -- z3rno-postgres subchart values (v0.19.7)
+# CloudNativePG Cluster CR for an in-cluster managed Postgres
+# running the z3rno-postgres image (Postgres 17 + pgvector + AGE +
+# pg_cron + pgaudit + pgcrypto).
+#
+# Opt-in: the parent z3rno chart only renders this resource when
+# ``z3rno-postgres.enabled=true`` (i.e. when the operator wants a
+# bundled DB instead of pointing externalDatabase at RDS/Cloud SQL).
+enabled: false
+
+# CloudNativePG operator must be installed in-cluster separately —
+# this chart only emits a Cluster CR, not the operator itself.
+#
+# Helm dependency on the operator chart would coupling two release
+# cycles; cleaner to document the prereq.
+operatorPrereqUrl: "https://cloudnative-pg.io/documentation/current/installation_upgrade/"
+
+cluster:
+  # Cluster name. Joined with the parent release name when rendered.
+  name: z3rno
+  instances: 3  # 1 primary + 2 replicas (HA + read-routing)
+  imageName: ghcr.io/the-ai-project-co/z3rno-postgres:17
+  storage:
+    size: 50Gi
+    storageClass: ""  # empty = use cluster default
+  resources:
+    requests:
+      cpu: "1"
+      memory: 2Gi
+    limits:
+      cpu: "4"
+      memory: 8Gi
+  # PG-level tuning. Pulled into the CR's postgresql.parameters
+  # block. Operators tune to workload — defaults sized for an
+  # 8GB RAM node.
+  parameters:
+    max_connections: "200"
+    shared_buffers: "2GB"
+    work_mem: "64MB"
+    maintenance_work_mem: "512MB"
+    effective_cache_size: "6GB"
+  # Extensions to enable in the bootstrap. The z3rno-postgres image
+  # ships with these compiled in, but the Cluster needs to be told
+  # which databases to CREATE EXTENSION in.
+  extensions:
+    - vector
+    - age
+    - pg_cron
+    - pgaudit
+    - pgcrypto
+  # Backups. CNPG supports backup-to-S3 natively; populate the
+  # block below to enable scheduled base backups + WAL archiving.
+  backup:
+    enabled: false
+    s3Bucket: ""  # e.g. s3://z3rno-backups
+    s3Region: ""
+    retentionPolicy: "30d"
+
+# Service shape. Two services are emitted:
+#   * ``<release>-z3rno-rw`` → primary (writes go here, alias for DATABASE_URL)
+#   * ``<release>-z3rno-ro`` → read replicas (DATABASE_READ_URL points here)
+service:
+  rwName: "z3rno-rw"
+  roName: "z3rno-ro"
+
+# Bootstrap. The Cluster's first boot creates the ``z3rno`` database
+# and the ``z3rno`` role. The migration step (alembic upgrade head)
+# is the operator's responsibility — typically a one-shot Job that
+# runs after the cluster reports ready.
+bootstrap:
+  database: z3rno
+  owner: z3rno
+  # When non-empty, CNPG reads the role's password from this secret
+  # (key: ``password``). Empty → CNPG generates one and stores it
+  # in a generated secret named ``<cluster>-app``.
+  ownerSecret: ""

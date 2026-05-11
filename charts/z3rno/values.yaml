@@ -155,6 +155,15 @@ observability:
     enabled: false
     extraLabels: {}
 
+# v0.19.7 — optional bundled Postgres via CloudNativePG. Disabled
+# by default so existing externalDatabase users see no change. When
+# enabled, the parent release renders a Cluster CR; point
+# ``secrets.databaseUrl`` / ``multiRegion.readDatabaseUrl`` at the
+# resulting ``<release>-z3rno-rw`` / ``<release>-z3rno-ro`` services.
+# Requires the CNPG operator pre-installed.
+z3rno-postgres:
+  enabled: false
+
 multiRegion:
   enabled: false
   region: ""  # e.g. "us-east-1"; required when enabled.

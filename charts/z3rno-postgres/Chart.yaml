@@ -1,0 +1,24 @@
+apiVersion: v2
+name: z3rno-postgres
+description: |
+  CloudNativePG Cluster resource for Z3rno (v0.19.7).
+  Wraps the z3rno-postgres image (Postgres 17 + pgvector + AGE +
+  pg_cron + pgaudit + pgcrypto) in a primary/replica topology so
+  the parent z3rno chart's DATABASE_URL + DATABASE_READ_URL knobs
+  land on an in-cluster managed Postgres without an external RDS.
+type: application
+version: 0.1.0
+appVersion: "17"
+kubeVersion: ">=1.27.0"
+home: https://github.com/the-ai-project-co/z3rno
+sources:
+  - https://github.com/the-ai-project-co/z3rno-helm
+maintainers:
+  - name: the-ai-project-co
+    url: https://github.com/the-ai-project-co
+keywords:
+  - z3rno
+  - postgres
+  - cloudnative-pg
+  - pgvector
+  - apache-age

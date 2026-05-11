@@ -1,0 +1,60 @@
+{{- if .Values.enabled }}
+# v0.19.7 — CloudNativePG Cluster CR. Requires the cnpg operator
+# in-cluster (see Chart.yaml `operatorPrereqUrl`).
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: {{ printf "%s-%s" .Release.Name .Values.cluster.name | trunc 63 | trimSuffix "-" }}
+  labels:
+    app.kubernetes.io/name: z3rno-postgres
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+spec:
+  instances: {{ .Values.cluster.instances }}
+  imageName: {{ .Values.cluster.imageName | quote }}
+
+  storage:
+    size: {{ .Values.cluster.storage.size | quote }}
+    {{- with .Values.cluster.storage.storageClass }}
+    storageClass: {{ . | quote }}
+    {{- end }}
+
+  resources:
+    requests:
+      cpu: {{ .Values.cluster.resources.requests.cpu | quote }}
+      memory: {{ .Values.cluster.resources.requests.memory | quote }}
+    limits:
+      cpu: {{ .Values.cluster.resources.limits.cpu | quote }}
+      memory: {{ .Values.cluster.resources.limits.memory | quote }}
+
+  postgresql:
+    parameters:
+      {{- range $k, $v := .Values.cluster.parameters }}
+      {{ $k }}: {{ $v | quote }}
+      {{- end }}
+
+  bootstrap:
+    initdb:
+      database: {{ .Values.bootstrap.database | quote }}
+      owner: {{ .Values.bootstrap.owner | quote }}
+      {{- with .Values.bootstrap.ownerSecret }}
+      secret:
+        name: {{ . | quote }}
+      {{- end }}
+      postInitSQL:
+        {{- range .Values.cluster.extensions }}
+        - "CREATE EXTENSION IF NOT EXISTS {{ . }}"
+        {{- end }}
+
+  {{- if .Values.cluster.backup.enabled }}
+  backup:
+    barmanObjectStore:
+      destinationPath: {{ .Values.cluster.backup.s3Bucket | quote }}
+      {{- with .Values.cluster.backup.s3Region }}
+      s3Credentials:
+        region:
+          name: {{ . | quote }}
+      {{- end }}
+    retentionPolicy: {{ .Values.cluster.backup.retentionPolicy | quote }}
+  {{- end }}
+{{- end }}
