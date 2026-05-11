@@ -1,0 +1,51 @@
+{{- if .Values.auditListener.enabled }}
+# v0.20.2 — singleton pod running ``z3rno-audit-listener``.
+# Opens a Postgres LISTEN on ``z3rno_audit_pending`` and fires the
+# existing ``z3rno.audit_drain`` Celery task whenever the trigger
+# (Migration 032) signals new rows. The periodic beat-drain stays in
+# place as a fallback (now at 60s).
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "z3rno.fullname" . }}-audit-listener
+  labels:
+    {{- include "z3rno.labels" . | nindent 4 }}
+    app.kubernetes.io/component: audit-listener
+spec:
+  replicas: 1     # singleton — one LISTEN connection per cluster is plenty
+  strategy:
+    type: Recreate     # avoid two listeners overlapping during rollout
+  selector:
+    matchLabels:
+      {{- include "z3rno.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: audit-listener
+  template:
+    metadata:
+      labels:
+        {{- include "z3rno.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: audit-listener
+        {{- include "z3rno.regionLabels" . | nindent 8 }}
+    spec:
+      {{- include "z3rno.imagePullSecrets" . | nindent 6 }}
+      serviceAccountName: {{ include "z3rno.serviceAccountName" . }}
+      containers:
+        - name: listener
+          image: "{{ .Values.server.image.repository }}:{{ .Values.server.image.tag }}"
+          imagePullPolicy: {{ .Values.server.image.pullPolicy }}
+          command: ["z3rno-audit-listener"]
+          env:
+            - name: Z3RNO_AUDIT_LISTEN_ENABLED
+              value: "true"
+          envFrom:
+            - configMapRef:
+                name: {{ include "z3rno.fullname" . }}
+            - secretRef:
+                name: {{ include "z3rno.secretName" . }}
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 200m
+              memory: 256Mi
+{{- end }}

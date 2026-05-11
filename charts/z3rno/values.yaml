@@ -169,6 +169,17 @@ observability:
 z3rno-postgres:
   enabled: false
 
+# v0.20.2 — NOTIFY-driven audit drain listener. Disabled by default
+# so pre-v0.20 deploys see no change; the beat-driven periodic
+# drain still runs. When enabled, a singleton pod opens a Postgres
+# LISTEN on ``z3rno_audit_pending`` (Migration 032 trigger) and
+# fires ``z3rno.audit_drain`` on every notification — drain wakes
+# in ~50ms instead of waiting for the next beat tick. The beat-side
+# poll stays in place as a fallback (recommended interval 60s
+# when listener is enabled).
+auditListener:
+  enabled: false
+
 multiRegion:
   enabled: false
   region: ""  # e.g. "us-east-1"; required when enabled.
