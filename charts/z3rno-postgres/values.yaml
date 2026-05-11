@@ -19,7 +19,10 @@ cluster:
   # Cluster name. Joined with the parent release name when rendered.
   name: z3rno
   instances: 3  # 1 primary + 2 replicas (HA + read-routing)
-  imageName: ghcr.io/the-ai-project-co/z3rno-postgres:17
+  # v0.19.10 — public user-namespace mirror. Org-namespace
+  # ghcr.io/the-ai-project-co/z3rno-postgres is private pending an
+  # operator admin flip; this mirror is anonymously pullable.
+  imageName: ghcr.io/safayavatsal/z3rno-postgres:17
   storage:
     size: 50Gi
     storageClass: ""  # empty = use cluster default

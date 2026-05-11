@@ -4,7 +4,12 @@
 # -- Server (z3rno-server FastAPI)
 server:
   image:
-    repository: ghcr.io/the-ai-project-co/z3rno-server
+    # v0.19.10 — anonymously-pullable public mirror.
+    # Org-namespace ghcr.io/the-ai-project-co/z3rno-server is private
+    # for now (operator-side admin issue); the user-namespace mirror
+    # is the public default. Operators can override to the org image
+    # once the visibility is sorted out.
+    repository: ghcr.io/safayavatsal/z3rno-server
     tag: latest
     pullPolicy: IfNotPresent
   replicas: 2
