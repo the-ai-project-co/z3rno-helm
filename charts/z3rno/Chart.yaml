@@ -2,7 +2,7 @@ apiVersion: v2
 name: z3rno
 description: Helm chart for Z3rno - the database for AI agent memory
 type: application
-version: 0.5.0
+version: 0.6.0
 # v0.19.7 — optional bundled Postgres via CloudNativePG. Set
 # ``z3rno-postgres.enabled=true`` in values.yaml when you want the
 # chart to render a managed in-cluster cluster instead of pointing
@@ -12,7 +12,7 @@ dependencies:
     version: 0.1.0
     repository: "file://../z3rno-postgres"
     condition: z3rno-postgres.enabled
-appVersion: 0.7.0
+appVersion: 0.20.0
 kubeVersion: ">=1.27.0"
 home: https://github.com/the-ai-project-co/z3rno
 sources:
