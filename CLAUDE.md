@@ -2,7 +2,7 @@
 
 ## Project
 
-z3rno-helm contains Helm charts for deploying Z3rno on Kubernetes. Currently a scaffold — no charts exist yet.
+z3rno-helm contains Helm charts for deploying Z3rno on Kubernetes. Phase F slice 7 adds an optional region-aware deploy mode (off by default).
 
 ## Quick Reference
 
@@ -24,3 +24,15 @@ helm install z3rno charts/z3rno/ -n z3rno-system      # Deploy
 - CloudNativePG for PostgreSQL cluster management
 - This repo is for Kubernetes deployment only (use docker-compose.dev.yml in z3rno-server for local dev)
 - Currently empty scaffold — building the chart is a Phase 2 deliverable
+
+## Phase F slice 7 — multi-region (opt-in)
+
+When ``multiRegion.enabled=true`` in values.yaml:
+- Every pod gets a ``z3rno.region`` label.
+- Server / worker / beat deployments get a zonal ``topologySpreadConstraints`` (maxSkew=1, ScheduleAnyway).
+- ``Z3RNO_REGION`` + optional ``Z3RNO_SECONDARY_REGIONS`` land in the configmap so logs/dashboards can scope by region.
+- ``DATABASE_READ_URL`` lands in the secret (operator-prepared knob; engine read-router lands in v0.18).
+
+Off by default — single-region deploys are byte-identical to v0.2.x. The chart now ships at ``0.3.0``.
+
+Render test: ``bash tests/multi_region_render.sh``.

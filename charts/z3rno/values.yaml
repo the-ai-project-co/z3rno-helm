@@ -127,6 +127,32 @@ podDisruptionBudget:
 # -- Additional environment variables
 env: {}
 
+# -- Phase F slice 7: multi-region failover.
+# When ``enabled: true``, the chart:
+#   * stamps ``z3rno.region`` and ``topology.kubernetes.io/zone`` labels
+#     on every pod template (server / worker / beat).
+#   * adds ``topologySpreadConstraints`` so replicas land across zones
+#     within the region (``maxSkew: 1`` over ``topology.kubernetes.io/zone``).
+#   * wires ``DATABASE_READ_URL`` from the same secret family as
+#     ``databaseUrl`` so the server can route SELECT-side reads to the
+#     region-local replica once the engine grows a read-router seam.
+#   * adds ``secondaryRegions`` as a documentation field — operators
+#     listing peer regions for their own GTM / cross-region failover
+#     runbook (the chart itself doesn't dispatch traffic across regions).
+#
+# Off by default — single-region deploys are byte-identical to v0.2.x.
+multiRegion:
+  enabled: false
+  region: ""  # e.g. "us-east-1"; required when enabled.
+  # When set, all pods get ``topology.kubernetes.io/zone`` topology-spread
+  # so replicas land across the listed zones rather than concentrating.
+  zones: []
+  # Read replica DSN. Empty string leaves DATABASE_READ_URL unset —
+  # the server falls back to DATABASE_URL for reads.
+  readDatabaseUrl: ""
+  # Optional list of peer regions for runbook documentation only.
+  secondaryRegions: []
+
 # -- Service Account
 serviceAccount:
   create: true

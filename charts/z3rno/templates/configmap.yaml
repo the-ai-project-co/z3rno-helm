@@ -9,6 +9,15 @@ data:
   EMBEDDING_MODEL: "text-embedding-3-small"
   LOG_LEVEL: "info"
   CORS_ORIGINS: "*"
+  {{- if .Values.multiRegion.enabled }}
+  # Phase F slice 7 — region context. The server stamps Z3RNO_REGION on
+  # every log entry; ops dashboards use this to scope alerts to the
+  # affected region without cross-region noise.
+  Z3RNO_REGION: {{ .Values.multiRegion.region | quote }}
+  {{- if .Values.multiRegion.secondaryRegions }}
+  Z3RNO_SECONDARY_REGIONS: {{ join "," .Values.multiRegion.secondaryRegions | quote }}
+  {{- end }}
+  {{- end }}
   {{- if .Values.beat.enabled }}
   # Audit drain tunables — read by z3rno.audit_drain (in workers/audit_drain.py).
   # Beat schedules the task at AUDIT_DRAIN_INTERVAL_SECONDS; the worker picks

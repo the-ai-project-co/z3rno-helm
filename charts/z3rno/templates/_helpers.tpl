@@ -100,6 +100,34 @@ Secret name to use (existing or chart-managed).
 {{- end }}
 
 {{/*
+Phase F slice 7 — multi-region pod labels.
+Adds ``z3rno.region`` when multiRegion is enabled. Empty when off so
+existing single-region deploys render byte-identically.
+*/}}
+{{- define "z3rno.regionLabels" -}}
+{{- if .Values.multiRegion.enabled }}
+z3rno.region: {{ .Values.multiRegion.region | quote }}
+{{- end }}
+{{- end }}
+
+{{/*
+Phase F slice 7 — topologySpreadConstraints fragment.
+Spreads replicas across the listed zones with maxSkew=1 so a zonal
+outage doesn't take out an entire region's pods.
+*/}}
+{{- define "z3rno.topologySpread" -}}
+{{- if and .Values.multiRegion.enabled .Values.multiRegion.zones }}
+topologySpreadConstraints:
+  - maxSkew: 1
+    topologyKey: topology.kubernetes.io/zone
+    whenUnsatisfiable: ScheduleAnyway
+    labelSelector:
+      matchLabels:
+        {{- include "z3rno.selectorLabels" . | nindent 8 }}
+{{- end }}
+{{- end }}
+
+{{/*
 Redis/Valkey URL.
 If externalRedis is enabled, build from external config.
 Otherwise, use bundled Valkey service.
