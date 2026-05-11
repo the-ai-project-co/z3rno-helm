@@ -185,6 +185,28 @@ serviceAccount:
 # -- Image pull secrets
 imagePullSecrets: []
 
+# v0.19.10 — inline ghcr.io pull-secret rendering.
+# Two ways to feed credentials in:
+#   1. Reference a pre-existing secret via ``imagePullSecrets`` above
+#      (recommended for prod — operators usually rotate the PAT via
+#      their own secret-management toolchain).
+#   2. Have the chart render the Secret resource for you (good for
+#      kind / starter-kit / local dev) by setting ``create: true``
+#      and supplying EITHER a raw ``dockerconfigjson`` blob OR a
+#      registry/username/password triple (chart base64-encodes for
+#      you).
+#
+# When ``create: false`` (the default), nothing is rendered — pre-
+# v0.19.10 deploys see no change.
+imagePullSecret:
+  create: false
+  # When supplying ghcr.io creds directly:
+  registry: "ghcr.io"
+  username: ""
+  password: ""        # GH PAT with read:packages scope
+  # OR pass a pre-built dockerconfigjson (base64-encoded):
+  dockerconfigjson: ""
+
 # -- Override chart name
 nameOverride: ""
 fullnameOverride: ""

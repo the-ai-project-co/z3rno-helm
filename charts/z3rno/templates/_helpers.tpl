@@ -143,3 +143,29 @@ Otherwise, use bundled Valkey service.
 {{- printf "redis://%s:%d/0" (include "z3rno.valkey.fullname" .) (int .Values.valkey.port) }}
 {{- end }}
 {{- end }}
+
+{{/*
+v0.19.10 — imagePullSecrets fragment.
+
+Emits the full ``imagePullSecrets:`` block (key + entries) when
+either of these is true:
+  * ``Values.imagePullSecrets`` has entries.
+  * ``Values.imagePullSecret.create`` is true → references the
+    chart-rendered ``<release>-ghcr-pull`` secret.
+
+Renders nothing (no key) when neither path is active so the parent
+``spec:`` stays clean. Callers indent with ``| nindent 6``.
+*/}}
+{{- define "z3rno.imagePullSecrets" -}}
+{{- $secrets := list -}}
+{{- if .Values.imagePullSecret.create -}}
+  {{- $secrets = append $secrets (dict "name" (printf "%s-ghcr-pull" (include "z3rno.fullname" .))) -}}
+{{- end -}}
+{{- range .Values.imagePullSecrets -}}
+  {{- $secrets = append $secrets . -}}
+{{- end -}}
+{{- if $secrets -}}
+imagePullSecrets:
+{{ toYaml $secrets | indent 2 }}
+{{- end -}}
+{{- end }}
