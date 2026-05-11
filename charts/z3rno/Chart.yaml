@@ -2,7 +2,7 @@ apiVersion: v2
 name: z3rno
 description: Helm chart for Z3rno - the database for AI agent memory
 type: application
-version: 0.3.0
+version: 0.4.0
 appVersion: 0.7.0
 kubeVersion: ">=1.27.0"
 home: https://github.com/the-ai-project-co/z3rno

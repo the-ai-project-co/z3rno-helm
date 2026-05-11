@@ -1,0 +1,108 @@
+{{- if .Values.observability.prometheusRules.enabled }}
+# Phase G slice 7 — pre-baked SLO recording + alerting rules.
+#
+# Gated by ``observability.prometheusRules.enabled`` so operators
+# without prometheus-operator in cluster don't see a 404 on apply.
+# The four recording rules below are the Z3rno SLO set; the alerts
+# are starting points operators usually tune to their SLA contract.
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: {{ include "z3rno.fullname" . }}-slo-rules
+  labels:
+    {{- include "z3rno.labels" . | nindent 4 }}
+    {{- with .Values.observability.prometheusRules.extraLabels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+spec:
+  groups:
+    - name: z3rno.slo.recording
+      interval: 30s
+      rules:
+        # Recall p95 — request-side latency over the last 5m, scoped to the
+        # POST /v1/memories/recall route. Streaming recall (/recall/stream)
+        # is excluded since first-byte latency is not the comparable metric.
+        - record: z3rno:slo:recall_p95_seconds
+          expr: |
+            histogram_quantile(0.95,
+              sum by (le) (
+                rate(http_request_duration_seconds_bucket{
+                  handler="/v1/memories/recall",
+                  status!~"5..",
+                  job=~"z3rno.*"
+                }[5m])
+              )
+            )
+        # Ingest success rate — successful /v1/ingest job completions /
+        # total job completions over 5m. Worker-side counter, not HTTP —
+        # ingest is async and an HTTP 202 doesn't mean the job succeeded.
+        - record: z3rno:slo:ingest_success_rate
+          expr: |
+            sum(rate(z3rno_ingest_jobs_total{outcome="succeeded"}[5m]))
+              /
+            clamp_min(sum(rate(z3rno_ingest_jobs_total[5m])), 1e-9)
+        # Distill error rate — fraction of distill_jobs that errored
+        # (over the 5m window). Inverse of the success-rate framing
+        # because operators want to alert on this directly.
+        - record: z3rno:slo:distill_error_rate
+          expr: |
+            sum(rate(z3rno_distill_jobs_total{outcome="failed"}[5m]))
+              /
+            clamp_min(sum(rate(z3rno_distill_jobs_total[5m])), 1e-9)
+        # Audit-chain freshness — seconds since the most recent
+        # audit_log_pending drain. Stale chain = pending audit rows are
+        # accumulating without making it into audit_log; SOC-2 risk.
+        - record: z3rno:slo:audit_chain_freshness_seconds
+          expr: |
+            time() - z3rno_audit_drain_last_success_timestamp_seconds
+
+    - name: z3rno.slo.alerts
+      interval: 30s
+      rules:
+        - alert: Z3rnoRecallLatencyHigh
+          expr: z3rno:slo:recall_p95_seconds > 0.5
+          for: 10m
+          labels:
+            severity: warning
+            slo: recall_p95
+          annotations:
+            summary: "Recall p95 above 500ms for 10m"
+            description: |
+              Recall p95 has been > 500ms for 10 minutes.
+              Current value: {{`{{ $value | printf "%.3fs" }}`}}.
+              Inspect: query patterns, replica lag, embedding provider latency.
+        - alert: Z3rnoIngestSuccessRateLow
+          expr: z3rno:slo:ingest_success_rate < 0.95
+          for: 15m
+          labels:
+            severity: critical
+            slo: ingest_success_rate
+          annotations:
+            summary: "Ingest success rate below 95% for 15m"
+            description: |
+              Current value: {{`{{ $value | humanizePercentage }}`}}.
+              Check distill_jobs / ingest_jobs `error` columns for the
+              dominant failure class.
+        - alert: Z3rnoDistillErrorRateHigh
+          expr: z3rno:slo:distill_error_rate > 0.10
+          for: 10m
+          labels:
+            severity: warning
+            slo: distill_error_rate
+          annotations:
+            summary: "Distill error rate above 10% for 10m"
+            description: |
+              Forge pipeline is dropping > 10% of jobs. Likely LLM
+              provider throttling or schema-validation failures.
+        - alert: Z3rnoAuditChainStale
+          expr: z3rno:slo:audit_chain_freshness_seconds > 300
+          for: 5m
+          labels:
+            severity: critical
+            slo: audit_freshness
+          annotations:
+            summary: "Audit chain freshness > 5m"
+            description: |
+              audit_log_pending hasn't been drained for > 5 minutes.
+              Beat scheduler health: kubectl logs deploy/{{ include "z3rno.beat.fullname" . }}.
+{{- end }}

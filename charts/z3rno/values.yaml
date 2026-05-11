@@ -141,6 +141,20 @@ env: {}
 #     runbook (the chart itself doesn't dispatch traffic across regions).
 #
 # Off by default — single-region deploys are byte-identical to v0.2.x.
+# -- Phase G slice 7: observability artifacts.
+# Both blocks are opt-in. ``prometheusRules.enabled`` needs
+# prometheus-operator in cluster (the resource is a CR);
+# ``grafanaDashboard.enabled`` needs a Grafana sidecar that watches
+# for ``grafana_dashboard=1`` labelled ConfigMaps. Either renders
+# byte-identically as missing when disabled.
+observability:
+  prometheusRules:
+    enabled: false
+    extraLabels: {}
+  grafanaDashboard:
+    enabled: false
+    extraLabels: {}
+
 multiRegion:
   enabled: false
   region: ""  # e.g. "us-east-1"; required when enabled.
