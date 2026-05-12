@@ -53,8 +53,16 @@ beat:
       memory: 256Mi
       cpu: 200m
   # Audit drain tunables (forwarded as env vars to the beat + worker pods).
+  #
+  # v0.22.2 — drainIntervalSeconds bumped from 1.0 to 60 to match the
+  # auditListener default (now on). The listener handles the hot path
+  # (sub-50 ms drain wake on every NOTIFY); the beat-driven schedule is
+  # the safety fallback for a stuck listener. A 1 s beat tick on a
+  # high-concurrency deploy contends with in-flight recall audit writes
+  # and produces periodic ~60 s tail outliers — confirmed by the v0.22
+  # bench. If you disable auditListener, drop this back to 1.0.
   audit:
-    drainIntervalSeconds: "1.0"
+    drainIntervalSeconds: "60"
     drainBatchSize: "500"
     maxOrgsPerTick: "100"
 
@@ -169,16 +177,21 @@ observability:
 z3rno-postgres:
   enabled: false
 
-# v0.20.2 — NOTIFY-driven audit drain listener. Disabled by default
-# so pre-v0.20 deploys see no change; the beat-driven periodic
-# drain still runs. When enabled, a singleton pod opens a Postgres
-# LISTEN on ``z3rno_audit_pending`` (Migration 032 trigger) and
-# fires ``z3rno.audit_drain`` on every notification — drain wakes
-# in ~50ms instead of waiting for the next beat tick. The beat-side
-# poll stays in place as a fallback (recommended interval 60s
-# when listener is enabled).
+# v0.20.2 — NOTIFY-driven audit drain listener. A singleton pod opens
+# a Postgres LISTEN on ``z3rno_audit_pending`` (Migration 032 trigger)
+# and fires ``z3rno.audit_drain`` on every notification — drain wakes
+# in ~50 ms instead of waiting for the next beat tick. The beat-driven
+# schedule (``beat.audit.drainIntervalSeconds``, default 60 s) stays
+# in place as a safety fallback.
+#
+# v0.22.2 — flipped to enabled=true by default. The v0.22 bench
+# confirmed that a 1 s beat-driven drain on a high-concurrency deploy
+# contends with in-flight recall audit writes and produces periodic
+# ~60 s tail outliers. Migration 032 is in head, so the NOTIFY trigger
+# is always available on a fresh deploy; flipping this off only makes
+# sense if you have an out-of-band drainer.
 auditListener:
-  enabled: false
+  enabled: true
 
 multiRegion:
   enabled: false
